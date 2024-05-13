@@ -188,6 +188,11 @@
  * so enable this only if it's useful */
 #define M68K_EMULATE_PMMU   OPT_ON
 
+/* Build in the disassembler.  If disabled, the API still exists
+ * but does nothing.  Turn off to save text/bss space.
+ */
+#define M68K_DASM_ENABLE            OPT_ON
+
 /* ----------------------------- COMPATIBILITY ---------------------------- */
 
 /* The following options set optimizations that violate the current ANSI

@@ -183,6 +183,10 @@
 #define M68K_LOG_1010_1111          OPT_OFF
 #define M68K_LOG_FILEHANDLE         some_file_handle
 
+/* Build in the disassembler.  If disabled, the API still exists
+ * but does nothing.  Turn off to save text/bss space.
+ */
+#define M68K_DASM_ENABLE            OPT_ON
 
 /* ----------------------------- COMPATIBILITY ---------------------------- */
 

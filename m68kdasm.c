@@ -146,6 +146,7 @@
 #define COMBINE_OPCODE_FLAGS(X) (X)
 #endif
 
+#if M68K_DASM_ENABLE
 
 /* ======================================================================== */
 /* =============================== PROTOTYPES ============================= */
@@ -3715,6 +3716,7 @@ static void build_opcode_table(void)
 		}
 	}
 }
+#endif // M68K_DASM_ENABLE
 
 
 
@@ -3725,6 +3727,7 @@ static void build_opcode_table(void)
 /* Disasemble one instruction at pc and store in str_buff */
 unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_type)
 {
+#if M68K_DASM_ENABLE
 	if(!g_initialized)
 	{
 		build_opcode_table();
@@ -3770,18 +3773,31 @@ unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_
 	g_instruction_table[g_cpu_ir]();
 	sprintf(str_buff, "%s%s", g_dasm_str, g_helper_str);
 	return COMBINE_OPCODE_FLAGS(g_cpu_pc - pc);
+#else
+        (void)str_buff;
+        (void)pc;
+        (void)cpu_type;
+        return 0;
+#endif
 }
 
 char* m68ki_disassemble_quick(unsigned int pc, unsigned int cpu_type)
 {
+#if M68K_DASM_ENABLE
 	static char buff[100];
 	buff[0] = 0;
 	m68k_disassemble(buff, pc, cpu_type);
 	return buff;
+#else
+        (void)pc;
+        (void)cpu_type;
+        return 0;
+#endif
 }
 
 unsigned int m68k_disassemble_raw(char* str_buff, unsigned int pc, const unsigned char* opdata, const unsigned char* argdata, unsigned int cpu_type)
 {
+#if M68K_DASM_ENABLE
 	unsigned int result;
 	(void)argdata;
 
@@ -3790,11 +3806,20 @@ unsigned int m68k_disassemble_raw(char* str_buff, unsigned int pc, const unsigne
 	result = m68k_disassemble(str_buff, pc, cpu_type);
 	g_rawop = NULL;
 	return result;
+#else
+        (void)str_buff;
+        (void)pc;
+        (void)opdata;
+        (void)argdata;
+        (void)cpu_type;
+        return 0;
+#endif
 }
 
 /* Check if the instruction is a valid one */
 unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cpu_type)
 {
+#if M68K_DASM_ENABLE
 	if(!g_initialized)
 	{
 		build_opcode_table();
@@ -3996,6 +4021,11 @@ unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cp
 		return 0;
 
 	return 1;
+#else
+        (void)instruction;
+        (void)cpu_type;
+        return 0;
+#endif
 }
 
 // f028 2215 0008
