@@ -1207,6 +1207,90 @@ void read_insert(char* insert)
 	*ptr++ = 0;
 }
 
+void build_opcode_jump_table(FILE *outfile, const opcode_struct *opcode_table, int opcode_table_len)
+{
+	/* Do what m68ki_build_opcode_table does, but generate a static version
+	 * at build time.  This allows a project to trade off RAM usage vs binary
+	 * size (or even ROM size)
+	 */
+	int instr;
+	int i;
+	int j;
+	int k;
+
+	/* One entry per opcode/instruction.  After allocating valid entries,
+	 * anything remaining zero is implicitly the illegal instr handler.
+	 */
+	const char **handler_names = calloc(0x10000, sizeof(char *));
+	/* FIXME: Support cycle table -- for one CPU type? */
+
+	for (int opc = 0; opc < opcode_table_len; opc++) {
+		const opcode_struct *ostruct = &opcode_table[opc];
+
+		switch (ostruct->op_mask) {
+		case 0xf000:
+		case 0xf100:
+		case 0xf180:
+		case 0xf1c0:
+		case 0xfe00:
+			for(i = 0;i < 0x10000;i++)
+			{
+				if((i & ostruct->op_mask) == ostruct->op_match)
+				{
+					handler_names[i] = ostruct->name;
+				}
+			}
+			break;
+
+		case 0xff00:
+			for(i = 0;i <= 0xff;i++)
+			{
+				handler_names[ostruct->op_match | i] = ostruct->name;
+			}
+			break;
+		case 0xf1f8:
+			for(i = 0;i < 8;i++)
+			{
+				for(j = 0;j < 8;j++)
+				{
+					instr = ostruct->op_match | (i << 9) | j;
+					handler_names[instr] = ostruct->name;
+				}
+			}
+			break;
+		case 0xfff0:
+			for(i = 0;i <= 0x0f;i++)
+			{
+				handler_names[ostruct->op_match | i] = ostruct->name;
+			}
+			break;
+		case 0xf1ff:
+			for(i = 0;i <= 0x07;i++)
+			{
+				handler_names[ostruct->op_match | (i << 9)] = ostruct->name;
+			}
+			break;
+		case 0xfff8:
+			for(i = 0;i <= 0x07;i++)
+			{
+				handler_names[ostruct->op_match | i] = ostruct->name;
+			}
+			break;
+		case 0xffff:
+			handler_names[ostruct->op_match] = ostruct->name;
+		}
+	}
+
+	/* Output handler names to create the final table: */
+	fprintf(outfile, "#if !M68K_DYNAMIC_INSTR_TABLES\n");
+	fprintf(outfile, "void (*const m68ki_static_instruction_jump_table[0x10000])(void) = {\n");
+	for (i = 0; i < 0x10000; i++) {
+		fprintf(outfile, "\t%s,\n", handler_names[i] ?
+			handler_names[i] : "	m68k_op_illegal");
+	}
+	fprintf(outfile, "};\n#endif\n");
+	free(handler_names);
+}
 
 
 /* ======================================================================== */
@@ -1380,6 +1464,8 @@ int main(int argc, char **argv)
 			fprintf(g_table_file, "%s\n\n", table_header_insert);
 			print_opcode_output_table(g_table_file);
 			fprintf(g_table_file, "%s\n\n", table_footer_insert);
+			build_opcode_jump_table(g_table_file,
+						g_opcode_output_table, g_opcode_output_table_length);
 
 			fprintf(g_prototype_file, "%s\n\n", prototype_footer_insert);
 
