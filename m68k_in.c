@@ -109,12 +109,26 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 M68KMAKE_PROTOTYPE_FOOTER
 
 
+#if M68K_DYNAMIC_INSTR_TABLES
 /* Build the opcode handler table */
 void m68ki_build_opcode_table(void);
 
 extern void (*m68ki_instruction_jump_table[0x10000])(void); /* opcode handler jump table */
+#if M68K_CYCLE_COUNTING
 extern unsigned char m68ki_cycles[][0x10000];
+#endif
+#else
+/* Opcode handler table is already built at compile time */
+static inline void m68ki_build_opcode_table(void) {}
+extern void (*const m68ki_static_instruction_jump_table[0x10000])(void);
 
+#if M68K_CYCLE_COUNTING
+/* To support cycle counting in a static-tables scenario, extend
+ * m68kmake to generate a static table.
+ */
+#error "CYCLE_COUNTING is only supported with DYNAMIC_INSTR_TABLES"
+#endif
+#endif
 
 /* ======================================================================== */
 /* ============================== END OF FILE ============================= */
@@ -136,8 +150,12 @@ M68KMAKE_TABLE_HEADER
 
 #define NUM_CPU_TYPES 5
 
+#if M68K_DYNAMIC_INSTR_TABLES
 void  (*m68ki_instruction_jump_table[0x10000])(void); /* opcode handler jump table */
+
+#if M68K_CYCLE_COUNTING
 unsigned char m68ki_cycles[NUM_CPU_TYPES][0x10000]; /* Cycles used by CPU type */
+#endif
 
 /* This is used to generate the opcode handler jump table */
 typedef struct
@@ -162,12 +180,16 @@ M68KMAKE_TABLE_FOOTER
 	{0, 0, 0, {0, 0, 0, 0, 0}}
 };
 
+#if M68K_CYCLE_COUNTING
+#define SET_CPU_CYCLECOUNT(a, b, val)   do { m68ki_cycles[k][i] = (val); } while(0)
+#else
+#define SET_CPU_CYCLECOUNT(a, b, val)   do { } while(0)
+#endif
 
 /* Build the opcode handler jump table */
 void m68ki_build_opcode_table(void)
 {
 	const opcode_handler_struct *ostruct;
-	int cycle_cost;
 	int instr;
 	int i;
 	int j;
@@ -178,7 +200,7 @@ void m68ki_build_opcode_table(void)
 		/* default to illegal */
 		m68ki_instruction_jump_table[i] = m68k_op_illegal;
 		for(k=0;k<NUM_CPU_TYPES;k++)
-			m68ki_cycles[k][i] = 0;
+			SET_CPU_CYCLECOUNT(k, i, 0);
 	}
 
 	ostruct = m68k_opcode_handler_table;
@@ -190,7 +212,7 @@ void m68ki_build_opcode_table(void)
 			{
 				m68ki_instruction_jump_table[i] = ostruct->opcode_handler;
 				for(k=0;k<NUM_CPU_TYPES;k++)
-					m68ki_cycles[k][i] = ostruct->cycles[k];
+					SET_CPU_CYCLECOUNT(k, i, ostruct->cycles[k]);
 			}
 		}
 		ostruct++;
@@ -201,7 +223,7 @@ void m68ki_build_opcode_table(void)
 		{
 			m68ki_instruction_jump_table[ostruct->match | i] = ostruct->opcode_handler;
 			for(k=0;k<NUM_CPU_TYPES;k++)
-				m68ki_cycles[k][ostruct->match | i] = ostruct->cycles[k];
+				SET_CPU_CYCLECOUNT(k, ostruct->match | i, ostruct->cycles[k]);
 		}
 		ostruct++;
 	}
@@ -214,7 +236,7 @@ void m68ki_build_opcode_table(void)
 				instr = ostruct->match | (i << 9) | j;
 				m68ki_instruction_jump_table[instr] = ostruct->opcode_handler;
 				for(k=0;k<NUM_CPU_TYPES;k++)
-					m68ki_cycles[k][instr] = ostruct->cycles[k];
+					SET_CPU_CYCLECOUNT(k, instr, ostruct->cycles[k]);
 /* SBF: don't add it here or the costs are added twice!
 				// For all shift operations with known shift distance (encoded in instruction word)
 				if((instr & 0xf000) == 0xe000 && (!(instr & 0x20)))
@@ -238,7 +260,7 @@ void m68ki_build_opcode_table(void)
 		{
 			m68ki_instruction_jump_table[ostruct->match | i] = ostruct->opcode_handler;
 			for(k=0;k<NUM_CPU_TYPES;k++)
-				m68ki_cycles[k][ostruct->match | i] = ostruct->cycles[k];
+				SET_CPU_CYCLECOUNT(k, ostruct->match | i, ostruct->cycles[k]);
 		}
 		ostruct++;
 	}
@@ -248,7 +270,7 @@ void m68ki_build_opcode_table(void)
 		{
 			m68ki_instruction_jump_table[ostruct->match | (i << 9)] = ostruct->opcode_handler;
 			for(k=0;k<NUM_CPU_TYPES;k++)
-				m68ki_cycles[k][ostruct->match | (i << 9)] = ostruct->cycles[k];
+				SET_CPU_CYCLECOUNT(k, ostruct->match | (i << 9), ostruct->cycles[k]);
 		}
 		ostruct++;
 	}
@@ -258,7 +280,7 @@ void m68ki_build_opcode_table(void)
 		{
 			m68ki_instruction_jump_table[ostruct->match | i] = ostruct->opcode_handler;
 			for(k=0;k<NUM_CPU_TYPES;k++)
-				m68ki_cycles[k][ostruct->match | i] = ostruct->cycles[k];
+				SET_CPU_CYCLECOUNT(k, ostruct->match | i, ostruct->cycles[k]);
 		}
 		ostruct++;
 	}
@@ -266,10 +288,12 @@ void m68ki_build_opcode_table(void)
 	{
 		m68ki_instruction_jump_table[ostruct->match] = ostruct->opcode_handler;
 		for(k=0;k<NUM_CPU_TYPES;k++)
-			m68ki_cycles[k][ostruct->match] = ostruct->cycles[k];
+			SET_CPU_CYCLECOUNT(k, ostruct->match, ostruct->cycles[k]);
 		ostruct++;
 	}
 }
+
+#endif // M68K_DYNAMIC_INSTR_TABLES
 
 
 /* ======================================================================== */
@@ -9577,8 +9601,8 @@ M68KMAKE_OP(stop, 0, ., .)
 		m68ki_trace_t0();			   /* auto-disable (see m68kcpu.h) */
 		CPU_STOPPED |= STOP_LEVEL_STOP;
 		m68ki_set_sr(new_sr);
-		if(m68ki_remaining_cycles >= CYC_INSTRUCTION[REG_IR])
-			m68ki_remaining_cycles = CYC_INSTRUCTION[REG_IR];
+		if(m68ki_remaining_cycles >= CYC_INSTRUCTION(REG_IR))
+			m68ki_remaining_cycles = CYC_INSTRUCTION(REG_IR);
 		else
 			USE_ALL_CYCLES();
 		return;

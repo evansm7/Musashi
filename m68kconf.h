@@ -193,6 +193,23 @@
  */
 #define M68K_DASM_ENABLE            OPT_ON
 
+/* Use dynamically-created tables for decode and cyclecounts (if
+ * enabled by CYCLE_COUNTING), as opposed to tables created at build
+ * time.  Using the dynamic version of the decode jumptable adds 256KB
+ * to RAM usage but makes the binary smaller.  Using the static
+ * version adds 256KB to the binary and no RAM, but doesn't currently
+ * support instruction cycle counts.
+ */
+#define M68K_DYNAMIC_INSTR_TABLES   OPT_ON
+
+/* Count instruction cycles.  This costs a table (created at runtime
+ * in RAM if DYNAMIC_INSTR_TABLES is on).
+ *
+ * NOTE: This is not currently supported when DYNAMIC_INSTR_TABLES is
+ * off.
+ */
+#define M68K_CYCLE_COUNTING         OPT_ON
+
 /* ----------------------------- COMPATIBILITY ---------------------------- */
 
 /* The following options set optimizations that violate the current ANSI

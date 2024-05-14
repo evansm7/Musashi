@@ -41,15 +41,24 @@
 extern void m68040_fpu_op0(void);
 extern void m68040_fpu_op1(void);
 extern void m68881_mmu_ops(void);
-extern unsigned char m68ki_cycles[][0x10000];
-extern void (*m68ki_instruction_jump_table[0x10000])(void); /* opcode handler jump table */
-extern void m68ki_build_opcode_table(void);
 
 #include "m68kops.h"
 #include "m68kcpu.h"
 
 #include "m68kfpu.c"
 #include "m68kmmu.h" // uses some functions from m68kfpu.c which are static !
+
+
+#if M68K_DYNAMIC_INSTR_TABLES
+extern void (*m68ki_instruction_jump_table[0x10000])(void); /* opcode handler jump table */
+void (**instruction_jump_table)(void) = m68ki_instruction_jump_table;
+#if M68K_CYCLE_COUNTING
+extern unsigned char m68ki_cycles[][0x10000];
+#endif
+#else
+extern void (*const m68ki_static_instruction_jump_table[0x10000])(void);
+void (**instruction_jump_table)(void) = (void (**)(void))m68ki_static_instruction_jump_table;
+#endif
 
 /* ======================================================================== */
 /* ================================= DATA ================================= */
@@ -776,6 +785,13 @@ void m68k_set_instr_hook_callback(void  (*callback)(unsigned int pc))
 	CALLBACK_INSTR_HOOK = callback ? callback : default_instr_hook_callback;
 }
 
+#if M68K_DYNAMIC_INSTR_TABLES && M68K_CYCLE_COUNTING
+#define CYC_INSTR_INIT(x)       m68ki_cpu.cyc_instruction = (x)
+#else
+/* FIXME: how to select a CPU flavour at compile time is TBD. */
+#define CYC_INSTR_INIT(x)       m68ki_cpu.cyc_instruction = NULL
+#endif
+
 /* Set the CPU type. */
 void m68k_set_cpu_type(unsigned int cpu_type)
 {
@@ -785,7 +801,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_000;
 			CPU_ADDRESS_MASK = 0x00ffffff;
 			CPU_SR_MASK      = 0xa71f; /* T1 -- S  -- -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[0];
+			CYC_INSTR_INIT(m68ki_cycles[0]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[0];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 2;
@@ -807,7 +823,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_010;
 			CPU_ADDRESS_MASK = 0x00ffffff;
 			CPU_SR_MASK      = 0xa71f; /* T1 -- S  -- -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[1];
+			CYC_INSTR_INIT(m68ki_cycles[1]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[1];
 			CYC_BCC_NOTAKE_B = -4;
 			CYC_BCC_NOTAKE_W = 0;
@@ -824,7 +840,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_EC020;
 			CPU_ADDRESS_MASK = 0x00ffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[2];
+			CYC_INSTR_INIT(m68ki_cycles[2]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[2];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 0;
@@ -841,7 +857,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_020;
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[2];
+			CYC_INSTR_INIT(m68ki_cycles[2]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[2];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 0;
@@ -858,7 +874,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_030;
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[3];
+			CYC_INSTR_INIT(m68ki_cycles[3]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[3];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 0;
@@ -875,7 +891,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_EC030;
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK          = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[3];
+			CYC_INSTR_INIT(m68ki_cycles[3]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[3];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 0;
@@ -892,7 +908,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_040;
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[4];
+			CYC_INSTR_INIT(m68ki_cycles[4]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[4];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 0;
@@ -909,7 +925,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			CPU_TYPE         = CPU_TYPE_EC040;
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			CYC_INSTRUCTION  = m68ki_cycles[4];
+			CYC_INSTR_INIT(m68ki_cycles[4]);
 			CYC_EXCEPTION    = m68ki_exception_cycle_table[4];
 			CYC_BCC_NOTAKE_B = -2;
 			CYC_BCC_NOTAKE_W = 0;
@@ -925,7 +941,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 		case M68K_CPU_TYPE_68LC040:
 			CPU_TYPE         = CPU_TYPE_LC040;
 			m68ki_cpu.sr_mask          = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
-			m68ki_cpu.cyc_instruction  = m68ki_cycles[4];
+			CYC_INSTR_INIT(m68ki_cycles[4]);
 			m68ki_cpu.cyc_exception    = m68ki_exception_cycle_table[4];
 			m68ki_cpu.cyc_bcc_notake_b = -2;
 			m68ki_cpu.cyc_bcc_notake_w = 0;
@@ -992,8 +1008,8 @@ int m68k_execute(int num_cycles)
 
 			/* Read an instruction and call its handler */
 			REG_IR = m68ki_read_imm_16();
-			m68ki_instruction_jump_table[REG_IR]();
-			USE_CYCLES(CYC_INSTRUCTION[REG_IR]);
+			instruction_jump_table[REG_IR]();
+			USE_CYCLES(CYC_INSTRUCTION(REG_IR));
 
 			/* Trace m68k_exception, if necessary */
 			m68ki_exception_if_trace(); /* auto-disable (see m68kcpu.h) */
