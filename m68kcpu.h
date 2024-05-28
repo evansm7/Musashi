@@ -934,6 +934,10 @@ typedef union
 
 typedef struct
 {
+	/* Most-used items at the front */
+	uint ir;           /* Instruction Register */
+	uint ppc;	   /* Previous program counter */
+	uint pc;           /* Program Counter */
 #ifndef M68K_FIXED_CPU_TYPE
 	uint cpu_type;     /* CPU Type: 68000, 68008, 68010, 68EC020, 68020, 68EC030, 68030, 68EC040, or 68040 */
 #endif
@@ -942,15 +946,12 @@ typedef struct
 	uint dar_save[16];  /* Saved Data and Address Registers (pushed onto the
 						   stack when a bus error occurs)*/
 #endif
-	uint ppc;		   /* Previous program counter */
-	uint pc;           /* Program Counter */
 	uint sp[7];        /* User, Interrupt, and Master Stack Pointers */
 	uint vbr;          /* Vector Base Register (m68010+) */
 	uint sfc;          /* Source Function Code Register (m68010+) */
 	uint dfc;          /* Destination Function Code Register (m68010+) */
 	uint cacr;         /* Cache Control Register (m68020, unemulated) */
 	uint caar;         /* Cache Address Register (m68020, unemulated) */
-	uint ir;           /* Instruction Register */
 	floatx80 fpr[8];     /* FPU Data Register (m68030/040) */
 	uint fpiar;        /* FPU Instruction Address Register (m68040) */
 	uint fpsr;         /* FPU Status Register (m68040) */
