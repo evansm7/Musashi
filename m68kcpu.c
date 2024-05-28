@@ -38,6 +38,8 @@
 /* ================================ INCLUDES ============================== */
 /* ======================================================================== */
 
+#include <assert.h>
+
 extern void m68040_fpu_op0(void);
 extern void m68040_fpu_op1(void);
 extern void m68881_mmu_ops(void);
@@ -670,6 +672,9 @@ unsigned int m68k_get_reg(void* context, m68k_register_t regnum)
 		case M68K_REG_PPC:	return MASK_OUT_ABOVE_32(cpu->ppc);
 		case M68K_REG_IR:	return cpu->ir;
 		case M68K_REG_CPU_TYPE:
+#ifdef M68K_FIXED_CPU_TYPE
+			return M68K_FIXED_CPU_TYPE;
+#else
 			switch(cpu->cpu_type)
 			{
 				case CPU_TYPE_000:		return (unsigned int)M68K_CPU_TYPE_68000;
@@ -679,6 +684,7 @@ unsigned int m68k_get_reg(void* context, m68k_register_t regnum)
 				case CPU_TYPE_040:		return (unsigned int)M68K_CPU_TYPE_68040;
 			}
 			return M68K_CPU_TYPE_INVALID;
+#endif
 		default:			return 0;
 	}
 	return 0;
@@ -792,13 +798,22 @@ void m68k_set_instr_hook_callback(void  (*callback)(unsigned int pc))
 #define CYC_INSTR_INIT(x)       m68ki_cpu.cyc_instruction = NULL
 #endif
 
+#ifdef M68K_FIXED_CPU_TYPE
+#define CPU_TYPE_INIT(x)        do {} while(0)
+#else
+#define CPU_TYPE_INIT(x)        do { CPU_TYPE = (x); } while(0)
+#endif
+
 /* Set the CPU type. */
 void m68k_set_cpu_type(unsigned int cpu_type)
 {
+#ifdef M68K_FIXED_CPU_TYPE
+	assert(cpu_type == M68K_FIXED_CPU_TYPE);
+#endif
 	switch(cpu_type)
 	{
 		case M68K_CPU_TYPE_68000:
-			CPU_TYPE         = CPU_TYPE_000;
+			CPU_TYPE_INIT(CPU_TYPE_000);
 			CPU_ADDRESS_MASK = 0x00ffffff;
 			CPU_SR_MASK      = 0xa71f; /* T1 -- S  -- -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[0]);
@@ -817,10 +832,10 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 		case M68K_CPU_TYPE_SCC68070:
 			m68k_set_cpu_type(M68K_CPU_TYPE_68010);
 			CPU_ADDRESS_MASK = 0xffffffff;
-			CPU_TYPE         = CPU_TYPE_SCC070;
+			CPU_TYPE_INIT(CPU_TYPE_SCC070);
 			return;
 		case M68K_CPU_TYPE_68010:
-			CPU_TYPE         = CPU_TYPE_010;
+			CPU_TYPE_INIT(CPU_TYPE_010);
 			CPU_ADDRESS_MASK = 0x00ffffff;
 			CPU_SR_MASK      = 0xa71f; /* T1 -- S  -- -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[1]);
@@ -837,7 +852,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	 = 0;
 			return;
 		case M68K_CPU_TYPE_68EC020:
-			CPU_TYPE         = CPU_TYPE_EC020;
+			CPU_TYPE_INIT(CPU_TYPE_EC020);
 			CPU_ADDRESS_MASK = 0x00ffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[2]);
@@ -854,7 +869,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	 = 0;
 			return;
 		case M68K_CPU_TYPE_68020:
-			CPU_TYPE         = CPU_TYPE_020;
+			CPU_TYPE_INIT(CPU_TYPE_020);
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[2]);
@@ -871,7 +886,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	 = 0;
 			return;
 		case M68K_CPU_TYPE_68030:
-			CPU_TYPE         = CPU_TYPE_030;
+			CPU_TYPE_INIT(CPU_TYPE_030);
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[3]);
@@ -888,7 +903,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	       = 1;
 			return;
 		case M68K_CPU_TYPE_68EC030:
-			CPU_TYPE         = CPU_TYPE_EC030;
+			CPU_TYPE_INIT(CPU_TYPE_EC030);
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK          = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[3]);
@@ -905,7 +920,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	       = 0;		/* EC030 lacks the PMMU and is effectively a die-shrink 68020 */
 			return;
 		case M68K_CPU_TYPE_68040:		// TODO: these values are not correct
-			CPU_TYPE         = CPU_TYPE_040;
+			CPU_TYPE_INIT(CPU_TYPE_040);
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[4]);
@@ -922,7 +937,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	 = 1;
 			return;
 		case M68K_CPU_TYPE_68EC040: // Just a 68040 without pmmu apparently...
-			CPU_TYPE         = CPU_TYPE_EC040;
+			CPU_TYPE_INIT(CPU_TYPE_EC040);
 			CPU_ADDRESS_MASK = 0xffffffff;
 			CPU_SR_MASK      = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[4]);
@@ -939,7 +954,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 			HAS_PMMU	 = 0;
 			return;
 		case M68K_CPU_TYPE_68LC040:
-			CPU_TYPE         = CPU_TYPE_LC040;
+			CPU_TYPE_INIT(CPU_TYPE_LC040);
 			m68ki_cpu.sr_mask          = 0xf71f; /* T1 T0 S  M  -- I2 I1 I0 -- -- -- X  N  Z  V  C  */
 			CYC_INSTR_INIT(m68ki_cycles[4]);
 			m68ki_cpu.cyc_exception    = m68ki_exception_cycle_table[4];

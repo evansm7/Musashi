@@ -325,7 +325,11 @@ typedef uint32 uint64;
 /* ------------------------------ CPU Access ------------------------------ */
 
 /* Access the CPU registers */
+#ifdef M68K_FIXED_CPU_TYPE
+#define CPU_TYPE         M68K_FIXED_CPU_TYPE
+#else
 #define CPU_TYPE         m68ki_cpu.cpu_type
+#endif
 
 #define REG_DA           m68ki_cpu.dar /* easy access to data and address regs */
 #define REG_DA_SAVE           m68ki_cpu.dar_save
@@ -930,7 +934,9 @@ typedef union
 
 typedef struct
 {
+#ifndef M68K_FIXED_CPU_TYPE
 	uint cpu_type;     /* CPU Type: 68000, 68008, 68010, 68EC020, 68020, 68EC030, 68030, 68EC040, or 68040 */
+#endif
 	uint dar[16];      /* Data and Address Registers */
 	uint dar_save[16];  /* Saved Data and Address Registers (pushed onto the
 						   stack when a bus error occurs)*/
