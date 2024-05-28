@@ -103,7 +103,9 @@ uint    m68ki_aerr_address;
 uint    m68ki_aerr_write_mode;
 uint    m68ki_aerr_fc;
 
+#if M68K_BUS_ERR_ENABLE
 jmp_buf m68ki_bus_error_jmp_buf;
+#endif
 
 /* Used by shift & rotate instructions */
 const uint8 m68ki_shift_8_table[65] =
@@ -1016,11 +1018,12 @@ int m68k_execute(int num_cycles)
 			/* Record previous program counter */
 			REG_PPC = REG_PC;
 
+#if M68K_BUS_ERR_ENABLE
 			/* Record previous D/A register state (in case of bus error) */
 			for (i = 15; i >= 0; i--){
 				REG_DA_SAVE[i] = REG_DA[i];
 			}
-
+#endif
 			/* Read an instruction and call its handler */
 			REG_IR = m68ki_read_imm_16();
 			instruction_jump_table[REG_IR]();
@@ -1133,7 +1136,9 @@ void m68k_init(void)
 /* Trigger a Bus Error exception */
 void m68k_pulse_bus_error(void)
 {
+#if M68K_BUS_ERR_ENABLE
 	m68ki_exception_bus_error();
+#endif
 }
 
 /* Pulse the RESET line on the CPU */

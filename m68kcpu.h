@@ -938,8 +938,10 @@ typedef struct
 	uint cpu_type;     /* CPU Type: 68000, 68008, 68010, 68EC020, 68020, 68EC030, 68030, 68EC040, or 68040 */
 #endif
 	uint dar[16];      /* Data and Address Registers */
+#ifdef M68K_BUS_ERR_ENABLE
 	uint dar_save[16];  /* Saved Data and Address Registers (pushed onto the
 						   stack when a bus error occurs)*/
+#endif
 	uint ppc;		   /* Previous program counter */
 	uint pc;           /* Program Counter */
 	uint sp[7];        /* User, Interrupt, and Master Stack Pointers */
@@ -1918,6 +1920,7 @@ static inline void m68ki_exception_privilege_violation(void)
 	USE_CYCLES(CYC_EXCEPTION[EXCEPTION_PRIVILEGE_VIOLATION] - CYC_INSTRUCTION(REG_IR));
 }
 
+#if M68K_BUS_ERR_ENABLE
 extern jmp_buf m68ki_bus_error_jmp_buf;
 
 #define m68ki_check_bus_error_trap() setjmp(m68ki_bus_error_jmp_buf)
@@ -1957,6 +1960,9 @@ static inline void m68ki_exception_bus_error(void)
 
 	longjmp(m68ki_bus_error_jmp_buf, 1);
 }
+#else  /* M68K_BUS_ERR_ENABLE */
+#define m68ki_check_bus_error_trap() do {} while(0)
+#endif
 
 extern int cpu_log_enabled;
 

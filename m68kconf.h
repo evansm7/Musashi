@@ -210,6 +210,12 @@
  */
 #define M68K_CYCLE_COUNTING         OPT_ON
 
+/* Support bus error API: if this isn't ever called by the application,
+ * save some cycles by disabling it.
+ */
+
+#define M68K_BUS_ERR_ENABLE         OPT_ON
+
 /* ----------------------------- COMPATIBILITY ---------------------------- */
 
 /* The following options set optimizations that violate the current ANSI
