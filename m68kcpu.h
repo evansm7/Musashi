@@ -1085,6 +1085,14 @@ static inline uint m68ki_read_imm_16(void)
 #endif /* M68K_EMULATE_PREFETCH */
 }
 
+/* Read an opcode.  Properties:  always aligned! */
+static inline uint m68ki_read_opcode_16(void)
+{
+	/* FIXME: fc, check addr err, check PMMU, etc. */
+	REG_PC += 2;
+	return m68k_read_instr_16(ADDRESS_68K(REG_PC-2));
+}
+
 static inline uint m68ki_read_imm_8(void)
 {
 	/* map read immediate 8 to read immediate 16 */

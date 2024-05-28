@@ -1025,7 +1025,7 @@ int M68K_FAST_FUNC(m68k_execute)(int num_cycles)
 			}
 #endif
 			/* Read an instruction and call its handler */
-			REG_IR = m68ki_read_imm_16();
+			REG_IR = m68ki_read_opcode_16();
 			instruction_jump_table[REG_IR]();
 			USE_CYCLES(CYC_INSTRUCTION(REG_IR));
 
