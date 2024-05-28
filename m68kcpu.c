@@ -976,7 +976,7 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 
 /* Execute some instructions until we use up num_cycles clock cycles */
 /* ASG: removed per-instruction interrupt checks */
-int m68k_execute(int num_cycles)
+int M68K_FAST_FUNC(m68k_execute)(int num_cycles)
 {
 	/* eat up any reset cycles */
 	if (RESET_CYCLES) {

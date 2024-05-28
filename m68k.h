@@ -151,6 +151,11 @@ typedef enum
 	M68K_REG_CPU_TYPE	/* Type of CPU being run */
 } m68k_register_t;
 
+
+#ifndef M68K_FAST_FUNC
+#define M68K_FAST_FUNC(x)       x
+#endif
+
 /* ======================================================================== */
 /* ====================== FUNCTIONS CALLED BY THE CPU ===================== */
 /* ======================================================================== */
