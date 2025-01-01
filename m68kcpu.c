@@ -1005,7 +1005,6 @@ int M68K_FAST_FUNC(m68k_execute)(int num_cycles)
 		/* Main loop.  Keep going until we run out of clock cycles */
 		do
 		{
-			int i;
 			/* Set tracing accodring to T1. (T0 is done inside instruction) */
 			m68ki_trace_t1(); /* auto-disable (see m68kcpu.h) */
 
@@ -1020,7 +1019,7 @@ int M68K_FAST_FUNC(m68k_execute)(int num_cycles)
 
 #if M68K_BUS_ERR_ENABLE
 			/* Record previous D/A register state (in case of bus error) */
-			for (i = 15; i >= 0; i--){
+			for (int i = 15; i >= 0; i--){
 				REG_DA_SAVE[i] = REG_DA[i];
 			}
 #endif
@@ -1191,7 +1190,7 @@ void m68k_pulse_halt(void)
 
 /* Get and set the current CPU context */
 /* This is to allow for multiple CPUs */
-unsigned int m68k_context_size()
+unsigned int m68k_context_size(void)
 {
 	return sizeof(m68ki_cpu_core);
 }
